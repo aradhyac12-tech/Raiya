@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>To Raiya ❤️ Happy New Year</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a0f1a;
+            --bg-tertiary: #2d1b2d;
+            --text-primary: #f0f0f0;
+            --text-secondary: #b0b0b0;
+            --heart-red: #ff3d47;
+            --heart-pink: #ff6b9d;
+            --heart-light: #ff8fab;
+            --accent-gold: #ffd700;
+            --border-color: rgba(255, 107, 157, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+            color: var(--text-primary);
+        }
+
+        /* LANDING PAGE */
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .page.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        .page-1 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+
+        .landing-content {
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .title-main {
+            font-size: clamp(2.5rem, 10vw, 5rem);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            background: linear-gradient(45deg, var(--heart-pink), var(--heart-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+        }
+
+        .title-main span {
+            display: inline-block;
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .title-main span:nth-child(1) { animation-delay: 0s; }
+        .title-main span:nth-child(2) { animation-delay: 0.05s; }
+        .title-main span:nth-child(3) { animation-delay: 0.1s; }
+        .title-main span:nth-child(4) { animation-delay: 0.15s; }
+        .title-main span:nth-child(5) { animation-delay: 0.2s; }
+        .title-main span:nth-child(6) { animation-delay: 0.25s; }
+        .title-main span:nth-child(7) { animation-delay: 0.3s; }
+        .title-main span:nth-child(8) { animation-delay: 0.35s; }
+
+        .heart-emoji {
+            font-size: 4rem;
+            margin: 2rem 0;
+            animation: heartPulse 1.5s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        .btn {
+            padding: 1.2rem 3rem;
+            font-size: 1.1rem;
+            background: linear-gradient(45deg, var(--heart-red), var(--heart-pink));
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(255, 61, 71, 0.4);
+            position: relative;
+            overflow: hidden;
+            margin: 1rem;
+            active: all 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 61, 71, 0.6);
+        }
+
+        .btn-arrow {
+            margin-left: 0.5rem;
+            display: inline-block;
+            animation: slideRight 0.6s ease-in-out infinite;
+        }
+
+        /* PAGE 2 - MESSAGE */
+        .page-2 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .nav-btn {
+            position: absolute;
+            top: 1.5rem;
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .nav-btn:active {
+            transform: scale(0.95);
+        }
+
+        .nav-btn.back { left: 1.5rem; }
+        .nav-btn.next { right: 1.5rem; bottom: 2rem; top: auto; width: 90%; border-radius: 50px; }
+
+        .nav-btn:hover {
+            background: rgba(255, 107, 157, 0.1);
+            border-color: var(--heart-pink);
+        }
+
+        .message-box {
+            background: rgba(45, 27, 45, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 2.5rem 2rem;
+            max-width: 700px;
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .message-box h2 {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, var(--heart-pink), var(--heart-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1.5rem;
+        }
+
+        .message-box p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin: 1rem 0;
+            color: var(--text-primary);
+            animation: slideUp 0.8s ease-out forwards;
+            opacity: 0;
+        }
+
+        .message-box p:nth-child(2) { animation-delay: 0.2s; }
+        .message-box p:nth-child(3) { animation-delay: 0.4s; }
+        .message-box p:nth-child(4) { animation-delay: 0.6s; }
+        .message-box p:nth-child(5) { animation-delay: 0.8s; }
+
+        .highlight {
+            color: var(--heart-pink);
+            font-weight: 600;
+        }
+
+        .glow-text {
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        /* PAGE 3 - HEART */
+        .page-3 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .heart-section {
+            text-align: center;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+
+        .heart-visualization {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 2rem auto;
+        }
+
+        #realistic-heart {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 30px rgba(255, 107, 157, 0.5));
+        }
+
+        .heartbeat-monitor {
+            position: absolute;
+            bottom: -3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--heart-pink);
+            font-weight: 600;
+        }
+
+        .heart-pulse {
+            width: 12px;
+            height: 12px;
+            background: var(--heart-red);
+            border-radius: 50%;
+            animation: heartBeat 1.5s ease-in-out infinite;
+        }
+
+        .heart-message {
+            margin-top: 3rem;
+            text-align: center;
+        }
+
+        .heart-message p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin: 0.5rem 0;
+        }
+
+        .heart-sync {
+            color: var(--heart-pink);
+            font-weight: 600;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        /* PAGE 4 - FIRECRACKERS */
+        .page-4 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .celebration-container {
+            text-align: center;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .celebration-title {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent-gold), var(--heart-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+        }
+
+        .celebration-subtitle {
+            font-size: 1.5rem;
+            color: var(--heart-light);
+            margin-bottom: 2rem;
+        }
+
+        .btn-fireworks {
+            padding: 1.5rem 3rem;
+            font-size: 1.3rem;
+            background: linear-gradient(45deg, var(--accent-gold), var(--heart-red));
+            color: #000;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            margin: 2rem 0;
+        }
+
+        .btn-fireworks:active {
+            transform: scale(0.95);
+        }
+
+        .btn-fireworks:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+        }
+
+        .celebration-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .message-card {
+            background: rgba(45, 27, 45, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+            animation: slideUp 0.8s ease-out forwards;
+            opacity: 0;
+        }
+
+        .message-card:nth-child(1) { animation-delay: 0.2s; }
+        .message-card:nth-child(2) { animation-delay: 0.4s; }
+        .message-card:nth-child(3) { animation-delay: 0.6s; }
+
+        .message-card p {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        /* PAGE 5 - THANK YOU */
+        .page-5 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .thank-you-title {
+            font-size: 3rem;
+            background: linear-gradient(45deg, var(--heart-pink), var(--heart-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+        }
+
+        .credits {
+            background: rgba(45, 27, 45, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 600px;
+        }
+
+        .credits p {
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin: 0.8rem 0;
+        }
+
+        .credits-box {
+            background: rgba(255, 107, 157, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .closing-message {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-top: 2rem;
+            line-height: 1.8;
+        }
+
+        .highlight-end {
+            color: var(--heart-pink);
+            font-weight: 600;
+        }
+
+        footer {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            z-index: 5;
+        }
+
+        /* CANVAS */
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* ANIMATIONS */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes heartPulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(255, 107, 157, 0.5)); }
+            25% { transform: scale(1.1); }
+            50% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(255, 107, 157, 0.8)); }
+            75% { transform: scale(1.05); }
+        }
+
+        @keyframes slideRight {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(8px); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 107, 157, 0.5); }
+            50% { text-shadow: 0 0 30px rgba(255, 107, 157, 1), 0 0 50px rgba(255, 61, 71, 0.8); }
+        }
+
+        @keyframes heartBeat {
+            0%, 100% { transform: scale(1); }
+            14% { transform: scale(1.3); }
+            28% { transform: scale(1); }
+            42% { transform: scale(1.3); }
+            70% { transform: scale(1); }
+        }
+
+        /* MOBILE */
+        @media (max-width: 768px) {
+            .title-main { font-size: 2.5rem; }
+            .heart-emoji { font-size: 3rem; }
+            .subtitle { font-size: 1.2rem; }
+            .btn { padding: 1rem 2rem; font-size: 1rem; }
+            .message-box { padding: 1.5rem 1.2rem; }
+            .section-title { font-size: 1.5rem; }
+            .celebration-title { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+    <canvas id="heart-canvas"></canvas>
+    <canvas id="fireworks-canvas"></canvas>
+
+    <!-- PAGE 1: LANDING -->
+    <div id="page1" class="page page-1 active">
+        <div class="landing-content">
+            <h1 class="title-main">
+                <span>T</span><span>o</span><span> </span>
+                <span>R</span><span>a</span><span>i</span><span>y</span><span>a</span>
+            </h1>
+            <div class="heart-emoji">❤️</div>
+            <p class="subtitle">A Journey of Love & Joy</p>
+            <button class="btn" onclick="goToPage(2); hapticFeedback();">
+                Begin the Journey <span class="btn-arrow">→</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- PAGE 2: MESSAGE -->
+    <div id="page2" class="page page-2">
+        <button class="nav-btn back" onclick="goToPage(1); hapticFeedback();">← Back</button>
+        
+        <div class="message-box">
+            <h2>To Raiya ❤️</h2>
+            <p>I love you so much...</p>
+            <p>Didn't expect you in my life, but here you are.</p>
+            <p>Yeah, you're slightly annoying at times 😄 <span class="highlight">But you think about me constantly.</span></p>
+            <p>Don't you believe in him? <span class="highlight">Because I believe in us.</span></p>
+            <p>May this year bring endless happiness to you, Raiya! <span class="glow-text">And two more inches of height! 🎉</span></p>
+        </div>
+
+        <button class="nav-btn next" onclick="goToPage(3); hapticFeedback();">
+            Next: Feel My Heart ❤️ →
+        </button>
+    </div>
+
+    <!-- PAGE 3: HEART -->
+    <div id="page3" class="page page-3">
+        <button class="nav-btn back" onclick="goToPage(2); hapticFeedback();">← Back</button>
+        
+        <div class="heart-section">
+            <h2 class="section-title">Feel My Heart Beat For You</h2>
+            
+            <div class="heart-visualization">
+                <canvas id="realistic-heart"></canvas>
+                <div class="heartbeat-monitor">
+                    <div class="heart-pulse"></div>
+                    <span>♡ 72 BPM</span>
+                </div>
+            </div>
+            
+            <div class="heart-message">
+                <p>Every beat is a reminder...</p>
+                <p class="heart-sync">that my heart beats for you, Raiya.</p>
+            </div>
+        </div>
+
+        <button class="nav-btn next" onclick="goToPage(4); hapticFeedback();">
+            Next: Let's Celebrate! 🎆 →
+        </button>
+    </div>
+
+    <!-- PAGE 4: FIRECRACKERS -->
+    <div id="page4" class="page page-4">
+        <button class="nav-btn back" onclick="goToPage(3); hapticFeedback();">← Back</button>
+        
+        <div class="celebration-container">
+            <h1 class="celebration-title">HAPPY NEW YEAR 2026!</h1>
+            <h2 class="celebration-subtitle">🎉 To Raiya with All My Love 🎉</h2>
+            
+            <button class="btn-fireworks" onclick="triggerFireworks(); hapticFeedback();">
+                ✨ CELEBRATE ✨
+            </button>
+            
+            <div class="celebration-messages">
+                <div class="message-card">
+                    <p>❤️ I love you so much, Raiya!</p>
+                </div>
+                <div class="message-card">
+                    <p>🎊 May this year bring happiness!</p>
+                </div>
+                <div class="message-card">
+                    <p>📏 Two more inches of height! 🎉</p>
+                </div>
+            </div>
+        </div>
+
+        <button class="nav-btn next" onclick="goToPage(5); hapticFeedback();">
+            Next: Thank You 💝 →
+        </button>
+    </div>
+
+    <!-- PAGE 5: THANK YOU -->
+    <div id="page5" class="page page-5">
+        <button class="nav-btn back" onclick="goToPage(4); hapticFeedback();">← Back</button>
+        
+        <div class="credits">
+            <h1 class="thank-you-title">Thank You, Raiya ❤️</h1>
+            
+            <p>This journey was created with love,</p>
+            <p>for the one who means everything to me.</p>
+            
+            <div class="credits-box">
+                <p><strong>From:</strong> Aradhya</p>
+                <p><strong>To:</strong> Raiya</p>
+                <p><strong>Date:</strong> Happy New Year 2026</p>
+            </div>
+            
+            <p class="closing-message">
+                "Don't you believe in him?<br>
+                <span class="highlight-end">Because I believe in us. Forever."</span>
+            </p>
+            
+            <button class="btn" onclick="goToPage(1); hapticFeedback();">
+                ↻ Start Again
+            </button>
+        </div>
+    </div>
+
+    <footer>Created by Aradhya</footer>
+
+    <script>
+        // HAPTIC FEEDBACK
+        function hapticFeedback() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(30);
+            }
+        }
+
+        // PAGE NAVIGATION
+        function goToPage(num) {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(p => p.classList.remove('active'));
+            document.getElementById('page' + num).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        // REALISTIC HEART ANIMATION
+        const heartCanvas = document.getElementById('realistic-heart');
+        if (heartCanvas) {
+            const ctx = heartCanvas.getContext('2d');
+            let beatPhase = 0;
+
+            function drawHeart(x, y, size, beat) {
+                // Left ventricle
+                ctx.fillStyle = '#ff3d47';
+                ctx.beginPath();
+                ctx.ellipse(x - size/3, y, size/2.5, size/2.2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Right ventricle
+                ctx.beginPath();
+                ctx.ellipse(x + size/3, y, size/2.5, size/2.2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Left atrium
+                ctx.beginPath();
+                ctx.ellipse(x - size/3.5, y - size/2, size/3, size/2.5, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Right atrium
+                ctx.beginPath();
+                ctx.ellipse(x + size/3.5, y - size/2, size/3, size/2.5, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Glow
+                ctx.strokeStyle = '#ff6b9d';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.ellipse(x, y, size/2, size/1.8, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+
+            function animateHeart() {
+                beatPhase = (beatPhase + 0.02) % (Math.PI * 2);
+                const normalized = beatPhase / (Math.PI * 2);
+                
+                let beatIntensity = 0;
+                if (normalized < 0.15) beatIntensity = normalized / 0.15;
+                else if (normalized < 0.25) beatIntensity = (0.25 - normalized) / 0.1;
+                else if (normalized < 0.35) beatIntensity = (normalized - 0.25) / 0.1;
+                else if (normalized < 0.45) beatIntensity = (0.45 - normalized) / 0.1;
+
+                ctx.clearRect(0, 0, heartCanvas.width, heartCanvas.height);
+                const sizeBase = heartCanvas.offsetWidth / 4;
+                const finalSize = sizeBase + beatIntensity * 40;
+                drawHeart(heartCanvas.offsetWidth / 2, heartCanvas.offsetHeight / 2, finalSize, beatIntensity);
+                
+                requestAnimationFrame(animateHeart);
+            }
+
+            heartCanvas.width = heartCanvas.offsetWidth * window.devicePixelRatio;
+            heartCanvas.height = heartCanvas.offsetHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            animateHeart();
+        }
+
+        // HD FIRECRACKERS
+        const fwCanvas = document.getElementById('fireworks-canvas');
+        const fwCtx = fwCanvas.getContext('2d');
+        fwCanvas.width = window.innerWidth;
+        fwCanvas.height = window.innerHeight;
+
+        let fireworks = [];
+        let particles = [];
+
+        class Firework {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 15;
+                this.vy = (Math.random() - 0.5) * 15 - 5;
+                this.age = 0;
+                this.maxAge = 30;
+                this.exploded = false;
+                this.color = `hsl(${Math.random() * 60 + 330}, 100%, 50%)`;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.2;
+                this.age++;
+
+                if (this.age >= this.maxAge && !this.exploded) {
+                    this.explode();
+                    this.exploded = true;
+                }
+            }
+
+            draw() {
+                fwCtx.fillStyle = this.color;
+                fwCtx.beginPath();
+                fwCtx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                fwCtx.fill();
+            }
+
+            explode() {
+                for (let i = 0; i < 80; i++) {
+                    particles.push(new Particle(this.x, this.y, this.color));
+                }
+                playSound();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 15;
+                this.vy = (Math.random() - 0.5) * 15;
+                this.age = 0;
+                this.maxAge = 60;
+                this.opacity = 1;
+                this.trail = [];
+            }
+
+            update() {
+                this.trail.push({x: this.x, y: this.y});
+                if (this.trail.length > 5) this.trail.shift();
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.15;
+                this.vx *= 0.98;
+                this.age++;
+                this.opacity = 1 - (this.age / this.maxAge);
+            }
+
+            draw() {
+                fwCtx.strokeStyle = `hsla(${this.color.split('hsl(')[1].split(',')[0]}, 100%, 50%, ${this.opacity * 0.5})`;
+                fwCtx.lineWidth = 1;
+                fwCtx.beginPath();
+                for (let i = 0; i < this.trail.length; i++) {
+                    if (i === 0) fwCtx.moveTo(this.trail[i].x, this.trail[i].y);
+                    else fwCtx.lineTo(this.trail[i].x, this.trail[i].y);
+                }
+                fwCtx.stroke();
+
+                fwCtx.fillStyle = `hsla(${this.color.split('hsl(')[1].split(',')[0]}, 100%, 50%, ${this.opacity})`;
+                fwCtx.beginPath();
+                fwCtx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                fwCtx.fill();
+            }
+        }
+
+        function triggerFireworks() {
+            for (let i = 0; i < 5; i++) {
+                fireworks.push(new Firework(Math.random() * fwCanvas.width, Math.random() * (fwCanvas.height * 0.6)));
+            }
+        }
+
+        function animateFireworks() {
+            fwCtx.fillStyle = 'rgba(10, 10, 10, 0.1)';
+            fwCtx.fillRect(0, 0, fwCanvas.width, fwCanvas.height);
+
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                fireworks[i].update();
+                fireworks[i].draw();
+                if (fireworks[i].age > fireworks[i].maxAge + 10) fireworks.splice(i, 1);
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].age >= particles[i].maxAge) particles.splice(i, 1);
+            }
+
+            requestAnimationFrame(animateFireworks);
+        }
+
+        animateFireworks();
+
+        // SOUND EFFECTS (Web Audio API)
+        function playSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const now = audioContext.currentTime;
+
+            // Crackle sound
+            const bufferSize = audioContext.sampleRate * 0.1;
+            const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+            const noiseNode = audioContext.createBufferSource();
+            noiseNode.buffer = noiseBuffer;
+            const noiseGain = audioContext.createGain();
+            noiseNode.connect(noiseGain);
+            noiseGain.connect(audioContext.destination);
+
+            noiseGain.gain.setValueAtTime(0.3, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            noiseNode.start(now);
+            noiseNode.stop(now + 0.1);
+
+            // Burst tone
+            for (let i = 0; i < 3; i++) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.setValueAtTime(300 + i * 100, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0, now + 0.2);
+                osc.start(now + i * 0.05);
+                osc.stop(now + i * 0.05 + 0.2);
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            fwCanvas.width = window.innerWidth;
+            fwCanvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
