@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page 3 - Grand Celebration</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/pages.css">
+</head>
+<body class="dark-theme page-transition">
+    anvas id="fireworks-main"></canvas>
+    
+    <div class="page-container page-3">
+        <button class="nav-back" onclick="goBack()">← Back</button>
+        
+        <div class="celebration-container">
+            <h1 class="celebration-title">HAPPY NEW YEAR 2026!</h1>
+            <h2 class="celebration-subtitle">🎉 To Raiya with All My Love 🎉</h2>
+            
+            <div class="fireworks-trigger">
+                <button class="btn-fireworks" onclick="triggerFireworks()">
+                    ✨ CELEBRATE ✨
+                </button>
+                <p class="fireworks-hint">Click multiple times for an epic show!</p>
+            </div>
+            
+            <div class="celebration-messages">
+                <div class="message-card card-1">
+                    <p>❤️ I love you so much, Raiya!</p>
+                </div>
+                <div class="message-card card-2">
+                    <p>🎊 May this year bring happiness!</p>
+                </div>
+                <div class="message-card card-3">
+                    <p>📏 Two more inches of height! 🎉</p>
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn-next" onclick="goToPage(4)">
+            Next: Thank You 💝
+            <span class="btn-arrow">→</span>
+        </button>
+        
+        <footer>Created by Aradhya</footer>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/audio.js"></script>
+    <script src="../js/fireworks.js"></script>
+</body>
+</html>
