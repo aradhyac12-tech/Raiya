@@ -1,0 +1,19 @@
+<script>
+window.onload = function(){
+
+    let img = document.getElementById("eyes");
+
+    img.onclick = function(){
+
+        raiseHeartBeat();
+
+        document.getElementById("msg").innerHTML =
+        "When I see your eyes... my heart loses control";
+
+        setTimeout(()=>{
+            window.location.href = "shayari.html";
+        },6000);
+    }
+
+}
+</script>
