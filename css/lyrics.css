@@ -1,0 +1,29 @@
+#lyricsBox{
+    position: fixed;
+    bottom: 40px;
+    width: 100%;
+    text-align: center;
+
+    font-size: 28px;
+    color: white;
+
+    font-family: "Arial";
+    letter-spacing: 2px;
+
+    opacity: 0;
+}
+
+#lyricsBox.show{
+    animation: lyricAnim 1s forwards;
+}
+
+@keyframes lyricAnim{
+    0%{
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100%{
+        opacity: 1;
+        transform: translateY(0px);
+    }
+}
