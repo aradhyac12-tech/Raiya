@@ -1,0 +1,3 @@
+body{background:#000;color:#b30000;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Georgia}
+#poem{font-size:28px;line-height:1.7;white-space:pre-line}
+.by{margin-top:30px;opacity:.7}
