@@ -1,5 +1,0 @@
-body{margin:0;background:#000;overflow:hidden;font-family:-apple-system}
-#lyrics{position:absolute;bottom:8%;width:100%;text-align:center;color:#b30000;font-size:28px}
-#bpm{position:absolute;top:18px;right:24px;color:#fff}
-#eyes{position:absolute;right:18px;bottom:18px;width:160px;border-radius:16px;cursor:pointer}
-.legacy{position:fixed;inset:0;border:none;opacity:.15;pointer-events:none}
