@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <title>For Raiya</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Gotu&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #000000; color: #ffffff; overflow-x: hidden; font-family: 'Inter', sans-serif; }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .glass-button {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-button:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.15); }
+
+        /* Scroller */
+        .picker-container {
+            height: 200px;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+        }
+        .picker-item {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            scroll-snap-align: center;
+        }
+
+        /* Animations */
+        @keyframes fade-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fade-up 0.8s ease-out forwards; opacity: 0; }
+        
+        @keyframes flash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+        .flash-overlay { animation: flash 0.5s ease-out forwards; }
+
+        .marathi-text { font-family: 'Gotu', sans-serif; line-height: 1.8; }
+        
+        #app { position: relative; z-index: 10; min-height: 100vh; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1s; }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <div id="app"></div>
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+        import { FBXLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/FBXLoader.js';
+        import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
+
+        // ==================== STATE ====================
+        const state = {
+            page: 0,
+            password: '',
+            // Answers
+            correctMet: { day: 13, month: 10, year: 2025 },
+            correctProp: { day: 20, month: 12, year: 2025 },
+            // Logic
+            metSelection: { day: 1, month: 1, year: 2020 },
+            propSelection: { day: 1, month: 1, year: 2020 },
+            heartRate: 1.0, // Multiplier
+            heartIntensity: 0.1,
+            eyesShown: false,
+            yesBtnSize: 1,
+            noMsgIdx: 0
+        };
+
+        // ==================== AUDIO SYSTEM ====================
+        const audio = {
+            bg: new Audio('assets/song.mp3'),
+            heart: new Audio('assets/song2.mp3')
+        };
+        
+        const initAudio = () => {
+            audio.bg.loop = true;
+            audio.bg.volume = 0.5;
+            audio.bg.play().catch(e => console.log("Audio waiting for interaction"));
+            
+            audio.heart.loop = true;
+            audio.heart.volume = 0;
+        };
+
+        const switchAudioToHeart = () => {
+            // Crossfade
+            let vol = 0.5;
+            const fade = setInterval(() => {
+                vol -= 0.05;
+                if (vol <= 0) {
+                    clearInterval(fade);
+                    audio.bg.pause();
+                    audio.heart.volume = 0.6;
+                    audio.heart.play();
+                } else {
+                    audio.bg.volume = vol;
+                }
+            }, 100);
+        };
+
+        const resetAudio = () => {
+            audio.heart.pause();
+            audio.heart.currentTime = 0;
+            audio.bg.currentTime = 0;
+            audio.bg.volume = 0.5;
+            // Don't play yet, wait for unlock
+        };
+
+        // ==================== 3D HEART SYSTEM ====================
+        let scene, camera, renderer, heartMesh, mixer;
+        let clock = new THREE.Clock();
+        let heartBeatTime = 0;
+
+        const init3D = () => {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 400); // Backed out for FBX scale
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Lighting for anatomical look
+            const ambient = new THREE.AmbientLight(0x404040, 1);
+            scene.add(ambient);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+
+            const redLight = new THREE.PointLight(0xdc2626, 2, 500);
+            redLight.position.set(0, 0, 100);
+            scene.add(redLight);
+
+            // Load Heart
+            const loader = new FBXLoader();
+            loader.load('assets/Heart.fbx', (object) => {
+                heartMesh = object;
+                // Normalize scale - FBX can be huge or tiny
+                const box = new THREE.Box3().setFromObject(heartMesh);
+                const size = box.getSize(new THREE.Vector3());
+                const scaleFactor = 150 / size.y; // Scale to height of 150
+                heartMesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                
+                // Material Fix
+                heartMesh.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material = new THREE.MeshStandardMaterial({
+                            color: 0x800000, // Dark blood red
+                            roughness: 0.3,   // Wet look
+                            metalness: 0.1,
+                            bumpScale: 0.02
+                        });
+                    }
+                });
+
+                scene.add(heartMesh);
+            }, undefined, (e) => console.error(e));
+
+            // Controls
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableZoom = false;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2;
+
+            animate3D();
+        };
+
+        const animate3D = () => {
+            requestAnimationFrame(animate3D);
+            const delta = clock.getDelta();
+            
+            if (heartMesh) {
+                heartBeatTime += delta * state.heartRate;
+                
+                // Systole/Diastole simulation
+                // A heartbeat is sharp: pump-pump..... pump-pump
+                // We use sin waves combined to create the "lub-dub"
+                const beat = (Math.pow(Math.sin(heartBeatTime * Math.PI * 2), 63) * state.heartIntensity) + 1;
+                
+                heartMesh.scale.setScalar(heartMesh.userData.originalScale || 1); // Reset
+                const currentScale = heartMesh.scale.x;
+                heartMesh.scale.set(currentScale * beat, currentScale * beat, currentScale * beat);
+                
+                // Store original scale on first run
+                if (!heartMesh.userData.originalScale) {
+                    heartMesh.userData.originalScale = currentScale / beat; 
+                }
+            }
+
+            renderer.render(scene, camera);
+        };
+
+        // ==================== APP LOGIC ====================
+        
+        window.transition = (pageIndex) => {
+            if (navigator.vibrate) navigator.vibrate(10);
+            const app = document.getElementById('app');
+            app.style.opacity = '0';
+            
+            setTimeout(() => {
+                state.page = pageIndex;
+                render();
+                app.style.opacity = '1';
+                handlePageSideEffects(pageIndex);
+            }, 300);
+        };
+
+        const handlePageSideEffects = (page) => {
+            const canvas3d = document.getElementById('canvas-container');
+
+            // Page 4: Heart Sequence
+            if (page === 4) {
+                canvas3d.style.opacity = '1';
+                canvas3d.style.zIndex = '5'; // Bring to view but behind text
+                state.heartRate = 1.0; // Normal
+                state.heartIntensity = 0.1;
+
+                // Sequence
+                setTimeout(() => {
+                    // Show Eyes
+                    state.eyesShown = true;
+                    render(); // Re-render to show eyes image
+                    
+                    // Adrenaline Kick
+                    setTimeout(() => {
+                        state.heartRate = 3.5; // Fast!
+                        state.heartIntensity = 0.3; // Hard beats
+                        switchAudioToHeart();
+                        if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 100]);
+                    }, 1000); // 1 sec after eyes appear
+                    
+                }, 4000); // 4 seconds normal heart
+            } 
+            else if (page === 5) {
+                // Keep heart visible but faded? Or hide?
+                // Request implies text focus. Let's hide heart or dim it.
+                canvas3d.style.opacity = '0.2';
+                typeWriterMarathi();
+            }
+            else {
+                canvas3d.style.opacity = '0';
+                canvas3d.style.zIndex = '0';
+            }
+        };
+
+        // ==================== COMPONENT: SCROLLER ====================
+        const renderPicker = (id, min, max, type) => {
+            // Random start point logic
+            const randomStart = Math.floor(Math.random() * (max - min + 1)) + min;
+            
+            // Allow time for DOM to paint before scrolling
+            setTimeout(() => {
+                setupPickerLogic(id, min, max, randomStart, type);
+            }, 100);
+
+            return `<div id="${id}" class="picker-container glass rounded-xl w-24"></div>`;
+        };
+
+        const setupPickerLogic = (id, min, max, startVal, type) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            let html = '<div class="h-[75px]"></div>';
+            for (let i = min; i <= max; i++) {
+                html += `<div class="picker-item text-2xl font-light text-white/30" data-val="${i}">${i}</div>`;
+            }
+            html += '<div class="h-[75px]"></div>';
+            el.innerHTML = html;
+
+            // Scroll to random start
+            const itemHeight = 50;
+            el.scrollTop = (startVal - min) * itemHeight;
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Haptic
+                        if (navigator.vibrate) navigator.vibrate(15);
+                        
+                        // Visual
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'scale(1.2)';
+                        entry.target.style.color = '#fff';
+                        
+                        // Data update
+                        const val = parseInt(entry.target.dataset.val);
+                        const dataObj = state.page === 1 ? state.metSelection : state.propSelection;
+                        if (type === 'd') dataObj.day = val;
+                        if (type === 'm') dataObj.month = val;
+                        if (type === 'y') dataObj.year = val;
+                    } else {
+                        entry.target.style.opacity = '0.3';
+                        entry.target.style.transform = 'scale(1)';
+                        entry.target.style.color = 'rgba(255,255,255,0.3)';
+                    }
+                });
+            }, { root: el, threshold: 0.5, rootMargin: "-45% 0px -45% 0px" });
+
+            el.querySelectorAll('.picker-item').forEach(item => observer.observe(item));
+        };
+
+        // ==================== MARATHI TYPEWRITER ====================
+        const marathiText = `कुठे राहते सुंदरता असं मला विचारलं एकाने, दुसऱ्यानेही तेच विचारलं.
+मी म्हटल  - "कशी दिसते तुम्ही सांगा तर."
+दोन तास त्याने फक्त तारीफच केली,
+नंतर कळलं...
+ते तर तूच होतीस वेडी.`;
+
+        const typeWriterMarathi = () => {
+            const el = document.getElementById('marathi-target');
+            if (!el) return;
+            el.innerHTML = '';
+            let i = 0;
+            const speed = 50;
+            
+            function type() {
+                if (i < marathiText.length) {
+                    if (marathiText.charAt(i) === '\n') {
+                        el.innerHTML += '<br/>';
+                    } else {
+                        el.innerHTML += marathiText.charAt(i);
+                    }
+                    i++;
+                    setTimeout(type, speed);
+                } else {
+                    // Show next button after typing
+                    setTimeout(() => {
+                        document.getElementById('marathi-next').classList.remove('opacity-0');
+                    }, 1000);
+                }
+            }
+            type();
+        };
+
+        // ==================== RENDERER ====================
+        const render = () => {
+            const app = document.getElementById('app');
+            let content = '';
+
+            // PAGE 0: PASSWORD
+            if (state.page === 0) {
+                content = `
+                    <div class="flex flex-col items-center justify-center min-h-screen px-6 z-20">
+                        <div class="text-center mb-8 animate-fade-up">
+                            <h2 class="text-stone-400 text-sm tracking-[0.3em] uppercase mb-4">Secured</h2>
+                            <div class="flex gap-4 justify-center">
+                                <input type="password" id="pass" class="bg-transparent border-b border-stone-600 w-32 text-center text-3xl tracking-widest focus:outline-none focus:border-white transition-colors" maxlength="4" placeholder="••••">
+                            </div>
+                        </div>
+                        <button id="unlockBtn" class="glass-button w-full max-w-xs py-4 rounded-xl text-stone-300 tracking-widest uppercase text-sm animate-fade-up" style="animation-delay: 0.2s">
+                            Unlock Heart
+                        </button>
+                    </div>`;
+            }
+
+            // PAGE 1: MET DATE
+            else if (state.page === 1) {
+                content = `
+                    <div class="flex flex-col items-center justify-center min-h-screen relative z-20">
+                        <h2 class="text-2xl font-light text-stone-200 mb-12 animate-fade-up">When did we meet?</h2>
+                        <div class="flex gap-2 mb-12 animate-fade-up delay-100">
+                            ${renderPicker('d1', 1, 31, 'd')}
+                            ${renderPicker('m1', 1, 12, 'm')}
+                            ${renderPicker('y1', 2020, 2026, 'y')}
+                        </div>
+                        <button onclick="checkDate(1)" class="glass-button p-4 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        </button>
+                    </div>`;
+            }
+
+            // PAGE 2: PROPOSE DATE
+            else if (state.page === 2) {
+                content = `
+                    <div class="flex flex-col items-center justify-center min-h-screen relative z-20">
+                        <h2 class="text-2xl font-light text-stone-200 mb-12 animate-fade-up">When did I propose?</h2>
+                        <div class="flex gap-2 mb-12 animate-fade-up delay-100">
+                            ${renderPicker('d2', 1, 31, 'd')}
+                            ${renderPicker('m2', 1, 12, 'm')}
+                            ${renderPicker('y2', 2020, 2026, 'y')}
+                        </div>
+                        <button onclick="checkDate(2)" class="glass-button p-4 rounded-full">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        </button>
+                    </div>`;
+            }
+
+            // PAGE 3: NAME
+            else if (state.page === 3) {
+                content = `
+                    <div class="flex flex-col items-center justify-center min-h-screen z-20">
+                        <h1 class="text-6xl md:text-8xl font-thin tracking-[0.2em] animate-fade-up">RAIYA</h1>
+                        <button onclick="transition(4)" class="mt-12 glass-button px-8 py-3 rounded-full text-sm tracking-widest uppercase opacity-60 hover:opacity-100">
+                            Proceed
+                        </button>
+                    </div>`;
+            }
+
+            // PAGE 4: HEART & EYES
+            else if (state.page === 4) {
+                content = `
+                    <div class="flex flex-col items-center justify-center min-h-screen z-20 pointer-events-none">
+                        ${state.eyesShown ? `
+                            <div class="animate-fade-up flex flex-col items-center">
+                                <img src="assets/eyes.jpg" class="w-64 md:w-80 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.5)] border border-red-900/50 mb-8" />
+                                <p class="text-2xl text-red-400 font-light tracking-wide text-center drop-shadow-lg">When I see your eyes...</p>
+                            </div>
+                        ` : ''}
+                        
+                        <button onclick="transition(5)" class="pointer-events-auto absolute bottom-10 glass-button px-8 py-3 rounded-full ${state.eyesShown ? 'opacity-100' : 'opacity-0'} transition-opacity duration-1000">
+                            Next
+                        </button>
+                    </div>`;
+            }
+
+            // PAGE 5: MARATHI SHAYARI
+            else if (state.page === 5) {
+                content = `
+                    <div class="flex flex-col items-center justify-center min-h-screen z-20 px-6">
+                        <div class="max-w-md w-full glass p-8 rounded-2xl min-h-[300px] flex flex-col justify-center">
+                            <p id="marathi-target" class="marathi-text text-xl md:text-2xl text-stone-200"></p>
+                        </div>
+                        <button id="marathi-next" onclick="transition(6)" class="mt-8 glass-button px-8 py-3 rounded-full opacity-0 transition-opacity duration-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+                        </button>
+                    </div>`;
+            }
+
+            // PAGE 6: FINAL QUESTION
+            else if (state.page === 6) {
+                content = `
+                    <div class="flex flex-col items-center justify-center min-h-screen z-20 px-4 text-center">
+                        <h1 class="text-4xl md:text-5xl font-light text-rose-100 mb-12 animate-fade-up">Will you be my Valentine?</h1>
+                        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbW5lenZyZHI5OXM2eW95b3pmMG40cWVrMDhtNjVuM3A4dGNxa2g2dSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/VM1fcpu2bKs1e2Kdbj/giphy.gif" class="w-48 rounded-xl mb-12 opacity-90 animate-fade-up delay-100">
+                        
+                        <div class="flex flex-wrap justify-center gap-6 items-center animate-fade-up delay-200">
+                            <button onclick="transition(7)" class="glass-button bg-emerald-900/30 border-emerald-500/30 text-emerald-100 px-8 py-3 rounded-full text-xl transition-all" style="transform: scale(${1 + state.yesBtnSize * 0.1})">Yes</button>
+                            <button id="btnNo" class="glass-button px-6 py-3 rounded-full text-white/50 hover:bg-red-900/20">${state.noMsgIdx === 0 ? 'No' : ['Are you sure?', 'Really?', 'Pookie pls', 'Don\'t do this'][state.noMsgIdx % 4]}</button>
+                        </div>
+                    </div>`;
+            }
+
+            // PAGE 7: SUCCESS & LOCK
+            else if (state.page === 7) {
+                content = `
+                    <div class="flex flex-col items-center justify-center min-h-screen z-20 relative text-center">
+                        <h1 class="text-4xl md:text-6xl font-light mb-8 animate-fade-up text-rose-500">I knew it! ❤️</h1>
+                        <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmo3c3l5ODh3ZGN6NHhhaDE2Mjg1ZjkwOXczdDFxbWM3dTBtaW9zaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9XY4f3FgFTT4QlaYqa/giphy.gif" class="w-64 rounded-xl opacity-90 mb-12 animate-fade-up delay-100">
+                        
+                        <button onclick="lockScreen()" class="glass-button rounded-xl px-6 py-3 flex items-center gap-2 text-stone-400 hover:text-white transition-colors animate-fade-up delay-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                            Lock & Reset
+                        </button>
+                    </div>`;
+            }
+
+            app.innerHTML = content;
+            setupEventListeners();
+        };
+
+        // ==================== EVENTS & HELPERS ====================
+        
+        const setupEventListeners = () => {
+            // Unlock
+            const btnUnlock = document.getElementById('unlockBtn');
+            if (btnUnlock) {
+                btnUnlock.addEventListener('click', () => {
+                    const pass = document.getElementById('pass').value;
+                    if (pass === '0102') { // Set Password Here
+                        initAudio();
+                        transition(1);
+                    } else {
+                        btnUnlock.classList.add('bg-red-900/50');
+                        setTimeout(() => btnUnlock.classList.remove('bg-red-900/50'), 300);
+                        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                    }
+                });
+            }
+
+            // No Button Move logic
+            const btnNo = document.getElementById('btnNo');
+            if (btnNo) {
+                btnNo.addEventListener('click', () => {
+                    state.yesBtnSize += 2;
+                    state.noMsgIdx++;
+                    render();
+                });
+            }
+        };
+
+        // Global functions for inline HTML calls
+        window.checkDate = (stage) => {
+            const selected = stage === 1 ? state.metSelection : state.propSelection;
+            const correct = stage === 1 ? state.correctMet : state.correctProp;
+            
+            if (selected.day === correct.day && selected.month === correct.month && selected.year === correct.year) {
+                transition(stage + 1);
+            } else {
+                if (navigator.vibrate) navigator.vibrate(200);
+                alert("Incorrect Date! Try again.");
+            }
+        };
+
+        window.lockScreen = () => {
+            resetAudio();
+            // Reset State logic
+            state.page = 0;
+            state.heartRate = 1.0;
+            state.heartIntensity = 0.1;
+            state.eyesShown = false;
+            state.yesBtnSize = 1;
+            state.noMsgIdx = 0;
+            
+            // Hide 3D background
+            document.getElementById('canvas-container').style.opacity = '0';
+            
+            render();
+        };
+
+        // Init
+        window.onload = () => {
+            init3D();
+            render();
+        };
+
+    </script>
+</body>
+</html>
