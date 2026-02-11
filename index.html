@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Valentine Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.createjs.com/1.0.0/easeljs.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Playfair+Display:ital,wght@1,400;1,600&family=Gotu&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #000000; color: #ffffff; overflow-x: hidden; font-family: 'Inter', sans-serif; }
+
+        /* Layers */
+        #app { position: relative; z-index: 20; min-height: 100vh; pointer-events: none; transition: opacity 0.5s ease; }
+        #app > * { pointer-events: auto; }
+        
+        /* 3D Containers */
+        #canvas-heart { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; opacity: 0; transition: opacity 1s; pointer-events: auto; }
+        #rose-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 6; opacity: 0; transition: opacity 1s; pointer-events: auto; background: black; }
+        
+        /* Effects */
+        #canvas-infinite { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; opacity: 0; background: #000; transition: opacity 1s; }
+        #canvas-fireworks { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
+
+        /* Iframe Styling */
+        .iframe-wrapper { width: 100%; height: 100%; }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* UI Elements */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        .glass-button {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-button:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.2); }
+
+        /* Scroller */
+        .picker-wrapper {
+            position: relative; height: 180px; width: 80px; overflow: hidden;
+            mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+            transform: translateZ(0);
+        }
+        .picker-scroller { 
+            height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; 
+            scroll-behavior: smooth; padding-right: 20px; box-sizing: content-box; width: 100%; 
+        }
+        .picker-item { 
+            height: 45px; display: flex; align-items: center; justify-content: center; 
+            scroll-snap-align: center; font-size: 1.4rem; color: rgba(255,255,255,0.3); 
+            transition: transform 0.1s linear, opacity 0.1s linear; 
+        }
+        .picker-item.active { color: #fff; font-size: 1.6rem; font-weight: 600; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .picker-highlight { position: absolute; top: 50%; left: 0; width: 100%; height: 45px; transform: translateY(-50%); border-top: 1px solid rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.15); pointer-events: none; }
+
+        /* Animations */
+        @keyframes fade-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fade-up 0.8s ease-out forwards; opacity: 0; }
+        .marathi-text { font-family: 'Gotu', sans-serif; line-height: 1.8; }
+        
+        @keyframes heartbeat-pulse {
+            0% { transform: scale(1); } 15% { transform: scale(1.02); } 30% { transform: scale(1); } 45% { transform: scale(1.02); } 60% { transform: scale(1); } 100% { transform: scale(1); }
+        }
+        .adrenaline-container { animation: heartbeat-pulse 0.4s infinite; }
+
+    </style>
+</head>
+<body class="bg-black text-white">
+
+    <div id="canvas-heart"></div>
+
+    <div id="rose-container">
+        <div class="iframe-wrapper">
+             <iframe title="Rose" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share src="https://sketchfab.com/models/6281bf3703584323bb4d8326f1f1b59d/embed?autostart=1&ui_theme=dark&dnt=1"> </iframe>
+        </div>
+    </div>
+
+    <canvas id="canvas-infinite"></canvas>
+    
+    <canvas id="canvas-fireworks"></canvas>
+
+    <div id="app"></div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+        import { FBXLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/FBXLoader.js';
+        import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
+
+        // ================= STATE =================
+        const state = {
+            page: 0,
+            password: '0102',
+            correctMet: { d: 13, m: 10, y: 2025 },
+            correctProp: { d: 20, m: 12, y: 2025 },
+            sel1: { d: 1, m: 1, y: 2020 },
+            sel2: { d: 1, m: 1, y: 2020 },
+            // Animation Controls
+            bpm: 1.0, 
+            heartIntensity: 0.15,
+            eyesShown: false,
+            yesBtnSize: 1,
+            noMsgIdx: 0,
+            noMessages: ["Are you sure?", "Really sure??", "Pretty please?", "Don't do this!", "Think again!", "I'll be sad...", "Pookie please 🥺"]
+        };
+
+        const audio = {
+            bg: new Audio('assets/song.mp3'),
+            heart: new Audio('assets/song2.mp3')
+        };
+
+        // ================= AUDIO LOGIC =================
+        const initAudio = () => {
+            audio.bg.loop = true; audio.bg.volume = 0.5;
+            audio.heart.loop = true; audio.heart.volume = 0;
+            audio.bg.play().catch(e => console.log("Waiting for interaction"));
+            audio.heart.play().then(() => audio.heart.pause()); 
+        };
+
+        const triggerAdrenalineAudio = () => {
+            audio.heart.volume = 0;
+            audio.heart.play();
+            let vol = 0.5;
+            const fade = setInterval(() => {
+                vol -= 0.05;
+                if(vol <= 0) {
+                    clearInterval(fade);
+                    audio.bg.pause();
+                    audio.heart.volume = 1.0;
+                } else {
+                    audio.bg.volume = vol;
+                    audio.heart.volume = 1.0 - vol;
+                }
+            }, 100);
+        };
+
+        // ================= 3D HEART (THREE.JS) =================
+        let scene, camera, renderer, heartMesh;
+        let clock = new THREE.Clock();
+        let beatTime = 0;
+
+        const init3D = () => {
+            const container = document.getElementById('canvas-heart');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 400);
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            renderer.toneMappingExposure = 1.3;
+            container.appendChild(renderer.domElement);
+
+            const ambient = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambient);
+            const spot = new THREE.SpotLight(0xffffff, 2);
+            spot.position.set(50, 100, 100);
+            scene.add(spot);
+            const redLight = new THREE.PointLight(0xff0000, 2, 300);
+            redLight.position.set(0, 0, 100);
+            scene.add(redLight);
+
+            const loader = new FBXLoader();
+            loader.load('assets/Heart.fbx', (obj) => {
+                heartMesh = obj;
+                const box = new THREE.Box3().setFromObject(obj);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 150 / size.y; 
+                heartMesh.scale.set(scale, scale, scale);
+                
+                heartMesh.traverse(c => {
+                    if(c.isMesh) {
+                        c.material = new THREE.MeshPhysicalMaterial({
+                            color: 0x8a0303, roughness: 0.3, metalness: 0.1,
+                            clearcoat: 0.8, clearcoatRoughness: 0.1
+                        });
+                    }
+                });
+                scene.add(heartMesh);
+            });
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableZoom = false;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2;
+
+            animate3D();
+        };
+
+        const animate3D = () => {
+            requestAnimationFrame(animate3D);
+            const delta = clock.getDelta();
+            
+            if(heartMesh) {
+                beatTime += delta * state.bpm;
+                const beat = 1 + (Math.pow(Math.sin(beatTime * Math.PI), 12) * state.heartIntensity);
+                const currentScale = heartMesh.userData.baseScale || heartMesh.scale.x;
+                if(!heartMesh.userData.baseScale) heartMesh.userData.baseScale = currentScale;
+
+                heartMesh.scale.setScalar(currentScale * beat);
+                
+                if(state.bpm > 2.0) {
+                    heartMesh.position.x = (Math.random() - 0.5) * 2;
+                    heartMesh.position.y = (Math.random() - 0.5) * 2;
+                } else {
+                    heartMesh.position.set(0,0,0);
+                }
+            }
+            renderer.render(scene, camera);
+        };
+
+        // ================= INFINITE HEARTS =================
+        let infiniteStage, infiniteContainer, captureContainers, captureIndex;
+        
+        const initInfiniteHearts = () => {
+            const canvas = document.getElementById("canvas-infinite");
+            canvas.style.opacity = '1';
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            infiniteStage = new createjs.Stage(canvas);
+            infiniteContainer = new createjs.Container();
+            infiniteStage.addChild(infiniteContainer);
+            
+            captureContainers = [];
+            captureIndex = 0;
+
+            for (let i = 0; i < 60; i++) {
+                let heart = new createjs.Shape();
+                heart.graphics.beginFill(createjs.Graphics.getHSL(Math.random() * 30 - 45, 100, 50 + Math.random() * 30));
+                heart.graphics.moveTo(0, -12).curveTo(1, -20, 8, -20).curveTo(16, -20, 16, -10).curveTo(16, 0, 0, 12);
+                heart.graphics.curveTo(-16, 0, -16, -10).curveTo(-16, -20, -8, -20).curveTo(-1, -20, 0, -12);
+                heart.y = -100;
+                infiniteContainer.addChild(heart);
+            }
+
+            for (let i = 0; i < 10; i++) { 
+                let c = new createjs.Container();
+                c.cache(0, 0, canvas.width, canvas.height);
+                captureContainers.push(c);
+            }
+
+            createjs.Ticker.timingMode = createjs.Ticker.RAF;
+            createjs.Ticker.on("tick", tickInfinite);
+        };
+
+        const tickInfinite = (event) => {
+            if(state.page !== 3 && state.page !== 8) return; 
+            
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const l = infiniteContainer.numChildren;
+
+            captureIndex = (captureIndex + 1) % captureContainers.length;
+            infiniteStage.removeChildAt(0);
+            let captureContainer = captureContainers[captureIndex];
+            infiniteStage.addChildAt(captureContainer, 0);
+            captureContainer.addChild(infiniteContainer);
+
+            for (let i = 0; i < l; i++) {
+                let heart = infiniteContainer.getChildAt(i);
+                if (heart.y < -50) {
+                    heart._x = Math.random() * w;
+                    heart.y = h * (1 + Math.random()) + 50;
+                    heart.perX = (1 + Math.random() * 2) * h;
+                    heart.offX = Math.random() * h;
+                    heart.ampX = heart.perX * 0.1 * (0.15 + Math.random());
+                    heart.velY = -Math.random() * 2 - 1;
+                    heart.scale = Math.random() * 2 + 1;
+                    heart._rotation = Math.random() * 40 - 20;
+                    heart.alpha = Math.random() * 0.75 + 0.05;
+                    heart.compositeOperation = Math.random() < 0.33 ? "lighter" : "source-over";
+                }
+                let int = (heart.offX + heart.y) / heart.perX * Math.PI * 2;
+                heart.y += heart.velY * heart.scaleX / 2;
+                heart.x = heart._x + Math.cos(int) * heart.ampX;
+                heart.rotation = heart._rotation + Math.sin(int) * 30;
+            }
+            captureContainer.updateCache("source-over");
+            infiniteStage.update(event);
+        };
+
+        const stopInfiniteHearts = () => {
+             document.getElementById("canvas-infinite").style.opacity = '0';
+        };
+
+        // ================= FIREWORKS =================
+        const triggerFireworks = () => {
+            const canvas = document.getElementById('canvas-fireworks');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+            const particles = [];
+
+            class Particle {
+                constructor(x, y, color) {
+                    this.x = x; this.y = y; this.color = color;
+                    this.velocity = { x: (Math.random() - 0.5) * 12, y: (Math.random() - 0.5) * 12 };
+                    this.alpha = 1; this.friction = 0.95;
+                }
+                draw() {
+                    ctx.globalAlpha = this.alpha;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 2, 0, Math.PI * 2, false);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                }
+                update() {
+                    this.velocity.x *= this.friction;
+                    this.velocity.y *= this.friction;
+                    this.x += this.velocity.x;
+                    this.y += this.velocity.y;
+                    this.alpha -= 0.01;
+                }
+            }
+
+            const animateFW = () => {
+                if(state.page !== 8) return; 
+                requestAnimationFrame(animateFW);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                particles.forEach((p, i) => {
+                    if (p.alpha > 0) { p.update(); p.draw(); } else particles.splice(i, 1);
+                });
+            };
+            animateFW();
+
+            const launch = () => {
+                if(state.page !== 8) return;
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height * 0.6;
+                const color = `hsl(${Math.random() * 360}, 50%, 50%)`;
+                for (let i = 0; i < 80; i++) particles.push(new Particle(x, y, color));
+                setTimeout(launch, 600);
+            }
+            launch();
+        };
+
+        // ================= SCROLLER =================
+        const createPicker = (id, min, max, type, pageNum) => {
+            const range = max - min + 1;
+            const startVal = min + Math.floor(Math.random() * range); 
+            if(pageNum === 1) state.sel1[type] = startVal; else state.sel2[type] = startVal;
+            
+            setTimeout(() => initPickerLogic(id, min, max, startVal, type, pageNum), 50);
+
+            return `
+                <div class="picker-wrapper glass rounded-xl">
+                    <div class="picker-highlight"></div>
+                    <div id="${id}" class="picker-scroller scrollbar-hide">
+                        <div style="height: 67px;"></div>
+                        ${Array.from({length: max-min+1}, (_, i) => 
+                            `<div class="picker-item" data-val="\( {min+i}"> \){min+i}</div>`
+                        ).join('')}
+                        <div style="height: 67px;"></div>
+                    </div>
+                </div>`;
+        };
+
+        const initPickerLogic = (id, min, max, startVal, type, pageNum) => {
+            const el = document.getElementById(id);
+            const items = el.querySelectorAll('.picker-item');
+            const itemH = 45;
+            el.scrollTop = (startVal - min) * itemH;
+            updateVisuals(el, startVal - min, items);
+
+            let isScrolling;
+            el.addEventListener('scroll', () => {
+                window.cancelAnimationFrame(isScrolling);
+                isScrolling = window.requestAnimationFrame(() => {
+                    const idx = Math.round(el.scrollTop / itemH);
+                    if(idx >= 0 && idx < items.length) {
+                        const val = parseInt(items[idx].dataset.val);
+                        if(pageNum === 1) state.sel1[type] = val; else state.sel2[type] = val;
+                        updateVisuals(el, idx, items);
+                    }
+                });
+            });
+        };
+
+        const updateVisuals = (container, activeIdx, items) => {
+            items.forEach((item, idx) => {
+                const dist = Math.abs(idx - activeIdx);
+                if(dist === 0) {
+                    item.classList.add('active');
+                    item.style.transform = `scale(1.1) translateZ(0)`;
+                    item.style.opacity = '1';
+                } else if(dist === 1) {
+                    item.classList.remove('active');
+                    item.style.transform = `scale(0.9) rotateX(${idx > activeIdx ? '-25deg' : '25deg'}) translateZ(0)`;
+                    item.style.opacity = '0.5';
+                } else {
+                    item.classList.remove('active');
+                    item.style.transform = `scale(0.8) translateZ(0)`;
+                    item.style.opacity = '0.2';
+                }
+            });
+        };
+
+        // ================= MAIN RENDER =================
+        window.render = () => {
+            const app = document.getElementById('app');
+            let html = '';
+
+            // 0. LOCK
+            if(state.page === 0) {
+                html = `
+                    <div class="min-h-screen flex flex-col items-center justify-center p-6">
+                        <div class="glass p-8 rounded-3xl flex flex-col items-center animate-fade-up">
+                            <h2 class="text-xs tracking-[0.4em] uppercase text-white/50 mb-8">Passcode</h2>
+                            <input type="password" id="passInput" maxlength="4" class="bg-transparent border-b border-white/20 w-32 text-center text-3xl tracking-[0.5em] focus:outline-none focus:border-white mb-10 pb-2 text-white placeholder-white/10" placeholder="••••">
+                            <button onclick="checkPass()" class="glass-button w-full py-4 rounded-xl text-xs uppercase tracking-widest text-white/80">Unlock</button>
+                        </div>
+                    </div>`;
+            }
+
+            // 1 & 2. DATES
+            else if(state.page === 1 || state.page === 2) {
+                html = `
+                    <div class="min-h-screen flex flex-col items-center justify-center relative z-20">
+                        <h2 class="text-3xl font-light text-stone-200 mb-12 animate-fade-up">${state.page === 1 ? 'When did we meet?' : 'When did I propose?'}</h2>
+                        <div class="flex gap-4 mb-12 animate-fade-up delay-100">
+                            \( {createPicker(`p \){state.page}_d`, 1, 31, 'd', state.page)}
+                            \( {createPicker(`p \){state.page}_m`, 1, 12, 'm', state.page)}
+                            \( {createPicker(`p \){state.page}_y`, 2020, 2026, 'y', state.page)}
+                        </div>
+                        <button onclick="validateDate(${state.page})" class="glass-button p-4 rounded-full animate-fade-up delay-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>`;
+            }
+
+            // 3. NAME REVEAL
+            else if(state.page === 3) {
+                html = `
+                    <div class="min-h-screen flex flex-col items-center justify-center relative z-20">
+                        <h1 class="text-7xl md:text-9xl font-thin tracking-[0.2em] animate-fade-up drop-shadow-2xl">RAIYA</h1>
+                        <button onclick="transition(4)" class="mt-20 glass-button px-8 py-3 rounded-full opacity-60 hover:opacity-100 transition-opacity">Proceed</button>
+                    </div>`;
+            }
+
+            // 4. EYES & HEART
+            else if(state.page === 4) {
+                html = `
+                    <div id="eyes-container" class="min-h-screen flex flex-col items-center justify-center pointer-events-none">
+                        ${state.eyesShown ? `
+                            <div class="animate-fade-up flex flex-col items-center mb-24 z-30">
+                                <div class="relative">
+                                    <img src="assets/eyes.jpg" class="w-72 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.5)] border border-white/10 relative z-10">
+                                    <div class="absolute inset-0 bg-red-500/20 blur-xl animate-pulse"></div>
+                                </div>
+                                <p class="mt-8 text-3xl font-serif text-rose-200 italic drop-shadow-lg text-center">When I see your eyes...<br><span class="text-lg text-white/70 font-sans not-italic mt-2 block">The adrenaline kicks in</span></p>
+                            </div>
+                        ` : ''}
+                        <button id="nextBtn4" onclick="transition(5)" class="pointer-events-auto absolute bottom-12 glass-button px-8 py-3 rounded-full opacity-0 transition-opacity duration-1000 z-30">Next</button>
+                    </div>`;
+            }
+
+            // 5. MARATHI SHAYARI
+            else if(state.page === 5) {
+                html = `
+                    <div class="min-h-screen flex flex-col items-center justify-center px-6 relative z-20">
+                        <div class="glass p-8 rounded-2xl max-w-lg w-full min-h-[300px] flex flex-col justify-center">
+                            <p id="marathi-text" class="marathi-text text-xl md:text-2xl text-stone-200 leading-relaxed"></p>
+                        </div>
+                        <button id="marathi-btn" onclick="transition(6)" class="mt-8 glass-button px-8 py-3 rounded-full opacity-0 transition-opacity duration-500">
+                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+                        </button>
+                    </div>`;
+            }
+
+            // 6. ROSE
+            else if(state.page === 6) {
+                html = `
+                    <div class="min-h-screen flex flex-col items-center justify-end pb-24 relative z-20 pointer-events-none">
+                         <h1 class="text-3xl md:text-5xl font-serif text-rose-200 mb-8 animate-fade-up drop-shadow-lg">Btw Belated Happy Rose Day...!</h1>
+                         <button onclick="transition(7)" class="pointer-events-auto glass-button px-8 py-3 rounded-full animate-fade-up delay-100">
+                             Continue
+                         </button>
+                    </div>`;
+            }
+
+            // 7. PROPOSAL
+            else if(state.page === 7) {
+                html = `
+                    <div class="min-h-screen flex flex-col items-center justify-center text-center px-4 relative z-20">
+                        <h1 class="text-4xl md:text-5xl font-serif leading-tight text-stone-100 mb-12 animate-fade-up">Will you be my Valentine?</h1>
+                        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbW5lenZyZHI5OXM2eW95b3pmMG40cWVrMDhtNjVuM3A4dGNxa2g2dSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/VM1fcpu2bKs1e2Kdbj/giphy.gif" class="w-48 rounded-xl opacity-90 mb-12 animate-fade-up delay-100">
+                        <div class="flex flex-wrap justify-center gap-6 animate-fade-up delay-200 items-center">
+                             <button id="yesBtn" onclick="handleYes()" class="glass-button bg-rose-500/20 border-rose-500/40 text-rose-100 px-10 py-4 rounded-full text-xl hover:bg-rose-500/30 transition-all duration-300">Yes</button>
+                             <button id="noBtn" onclick="handleNo()" class="glass-button px-6 py-4 rounded-full text-white/40 hover:text-white transition-all">No</button>
+                        </div>
+                    </div>`;
+            }
+
+            // 8. SUCCESS & FINALE
+            else if(state.page === 8) {
+                html = `
+                    <div class="min-h-screen flex flex-col items-center justify-center text-center px-4 relative z-20">
+                        <h1 class="text-6xl font-serif text-rose-500 mb-4 animate-fade-up drop-shadow-[0_0_25px_rgba(220,38,38,0.8)]">I knew it! ❤️</h1>
+                        <h2 class="text-2xl md:text-3xl font-light text-white mb-12 animate-fade-up delay-100">I want to love you<br>as you want to be loved 🫀</h2>
+                        
+                        <div class="w-64 h-64 rounded-full overflow-hidden border-4 border-white/10 mb-8 animate-fade-up delay-200 mx-auto shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+                            <img src="https://media.giphy.com/media/l0HlP2ms0eUc5nlHG/giphy.gif" class="w-full h-full object-cover opacity-80 scale-125">
+                        </div>
+                        
+                        <p class="text-lg text-white/60 font-light animate-fade-up delay-300">Will always be there for you...!</p>
+                        <div class="mt-8 text-xs text-white/30 animate-pulse"> resetting in 10s... </div>
+                    </div>`;
+            }
+
+            app.innerHTML = html;
+        };
+
+        // ================= LOGIC HANDLERS =================
+        window.checkPass = () => {
+            if(document.getElementById('passInput').value === state.password) {
+                initAudio();
+                transition(1);
+            } else {
+                if(navigator.vibrate) navigator.vibrate([50,50]);
+                const el = document.getElementById('passInput');
+                el.style.borderColor = '#ef4444';
+                setTimeout(()=>el.style.borderColor='rgba(255,255,255,0.2)', 500);
+            }
+        };
+
+        window.validateDate = (pg) => {
+            const sel = pg === 1 ? state.sel1 : state.sel2;
+            const cor = pg === 1 ? state.correctMet : state.correctProp;
+            if(sel.d === cor.d && sel.m === cor.m && sel.y === cor.y) transition(pg + 1);
+            else { if(navigator.vibrate) navigator.vibrate(200); alert("Think harder... ❤️"); }
+        };
+
+        window.handleNo = () => {
+            // Instant DOM update to avoid blank screen re-render issues
+            state.yesBtnSize += 0.5;
+            state.noMsgIdx++;
+            const yesBtn = document.getElementById('yesBtn');
+            const noBtn = document.getElementById('noBtn');
+            if(yesBtn && noBtn) {
+                yesBtn.style.transform = `scale(${1 + state.yesBtnSize * 0.2})`;
+                noBtn.innerText = state.noMessages[state.noMsgIdx % state.noMessages.length];
+            }
+        };
+
+        window.handleYes = () => {
+            transition(8);
+        };
+
+        window.transition = (pg) => {
+            const app = document.getElementById('app');
+            app.style.opacity = '0';
+            setTimeout(() => {
+                state.page = pg;
+                render();
+                app.style.opacity = '1';
+                handleSideEffects(pg);
+            }, 500);
+        };
+
+        const handleSideEffects = (pg) => {
+            const hCanvas = document.getElementById('canvas-heart');
+            const rContainer = document.getElementById('rose-container');
+            
+            // Heart & Eyes Logic
+            if(pg === 4) {
+                hCanvas.style.opacity = '1';
+                state.bpm = 1.0; 
+                setTimeout(() => {
+                    state.eyesShown = true;
+                    const eyesContainer = document.getElementById('eyes-container');
+                    if (eyesContainer) {
+                        const eyesHtml = `
+                            <div class="animate-fade-up flex flex-col items-center mb-24 z-30">
+                                <div class="relative">
+                                    <img src="assets/eyes.jpg" class="w-72 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.5)] border border-white/10 relative z-10">
+                                    <div class="absolute inset-0 bg-red-500/20 blur-xl animate-pulse"></div>
+                                </div>
+                                <p class="mt-8 text-3xl font-serif text-rose-200 italic drop-shadow-lg text-center">When I see your eyes...<br><span class="text-lg text-white/70 font-sans not-italic mt-2 block">The adrenaline kicks in</span></p>
+                            </div>
+                        `;
+                        eyesContainer.insertAdjacentHTML('afterbegin', eyesHtml);
+                    }
+                    setTimeout(() => {
+                        state.bpm = 3.5; 
+                        state.heartIntensity = 0.4; 
+                        triggerAdrenalineAudio();
+                        document.getElementById('eyes-container')?.classList.add('adrenaline-container');
+                        if(navigator.vibrate) navigator.vibrate([100,50,100,50,100,50]);
+                        document.getElementById('nextBtn4').classList.remove('opacity-0');
+                    }, 1500);
+                }, 4000);
+            } 
+            else if(pg === 5) { // Marathi
+                hCanvas.style.opacity = '0.2'; 
+                document.getElementById('eyes-container')?.classList.remove('adrenaline-container');
+                typeWriter();
+            }
+            else if(pg === 6) { // Rose
+                hCanvas.style.opacity = '0';
+                rContainer.style.opacity = '1';
+            }
+            else if(pg === 8) { // Finale
+                hCanvas.style.opacity = '0';
+                initInfiniteHearts();
+                triggerFireworks();
+                setTimeout(() => window.location.reload(), 10000);
+            }
+            else if(pg === 3) initInfiniteHearts();
+            else {
+                hCanvas.style.opacity = '0';
+                rContainer.style.opacity = '0';
+                stopInfiniteHearts();
+            }
+        };
+
+        const typeWriter = () => {
+            const text = `कुठे राहते सुंदरता असं मला विचारलं एकाने, दुसऱ्यानेही तेच विचारलं.\nमी म्हटल - "कशी दिसते तुम्ही सांगा तर."\nदोन तास त्याने फक्त तारीफच केली,\nनंतर कळलं...\nते तर तूच होतीस वेडी.`;
+            const el = document.getElementById('marathi-text');
+            if(!el) return;
+            let i = 0;
+            const type = () => {
+                if(i < text.length) {
+                    el.innerHTML += text.charAt(i) === '\n' ? '<br/>' : text.charAt(i);
+                    i++;
+                    setTimeout(type, 50);
+                } else {
+                    document.getElementById('marathi-btn').classList.remove('opacity-0');
+                }
+            };
+            type();
+        };
+
+        const stopInfiniteHearts = () => { document.getElementById("canvas-infinite").style.opacity = '0'; };
+
+        // Init
+        window.onload = () => { init3D(); render(); };
+
+    </script>
+</body>
+</html>
